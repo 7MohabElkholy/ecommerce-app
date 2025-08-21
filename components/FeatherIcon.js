@@ -1,5 +1,8 @@
+// components/FeatherIcon.jsx
 "use client";
 import { useState, useEffect } from "react";
+
+const iconCache = {};
 
 export default function FeatherIcon({
   name,
@@ -8,15 +11,37 @@ export default function FeatherIcon({
   className = "",
   ...props
 }) {
-  const [svgContent, setSvgContent] = useState(null);
+  const [svgContent, setSvgContent] = useState("");
 
   useEffect(() => {
+    if (iconCache[name]) {
+      setSvgContent(iconCache[name]);
+      return;
+    }
+
     fetch(`/icons/feather/${name}.svg`)
-      .then((res) => res.text())
-      .then((svg) => setSvgContent(svg));
+      .then((res) => {
+        if (!res.ok) throw new Error("Icon not found");
+        return res.text();
+      })
+      .then((svg) => {
+        iconCache[name] = svg;
+        setSvgContent(svg);
+      })
+      .catch((error) => {
+        console.error("Error loading icon:", error);
+      });
   }, [name]);
 
-  if (!svgContent) return null;
+  if (!svgContent) {
+    return (
+      <div
+        className={`animate-pulse bg-gray-200 rounded ${className}`}
+        style={{ width: size, height: size }}
+        {...props}
+      />
+    );
+  }
 
   return (
     <div
