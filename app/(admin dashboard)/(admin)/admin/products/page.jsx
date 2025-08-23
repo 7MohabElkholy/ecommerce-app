@@ -1,43 +1,14 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
+import { supabase } from "../../../../lib/supabaseClient"; // your client
 
 // Mock data for categories
-const mockCategories = [
-  {
-    id: 1,
-    name: "إلكترونيات",
-    products: 42,
-    status: "نشط",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "أزياء",
-    products: 28,
-    status: "نشط",
-    createdAt: "2024-01-10",
-  },
-  { id: 3, name: "منزل", products: 15, status: "نشط", createdAt: "2024-01-08" },
-  {
-    id: 4,
-    name: "رياضة",
-    products: 19,
-    status: "معلق",
-    createdAt: "2024-01-05",
-  },
-  { id: 5, name: "جمال", products: 23, status: "نشط", createdAt: "2024-01-03" },
-  {
-    id: 6,
-    name: "أطفال",
-    products: 31,
-    status: "نشط",
-    createdAt: "2023-12-28",
-  },
-  { id: 7, name: "كتب", products: 8, status: "معلق", createdAt: "2023-12-25" },
-];
 
 function CategoriesTable() {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedCategories, setSelectedCategories] = useState([]); // no <number[]>
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -47,15 +18,35 @@ function CategoriesTable() {
     );
   };
 
+  const fetchCategories = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("categories_with_counts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("fetch categories error", error);
+      setCategories([]);
+    } else {
+      setCategories(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
   const toggleSelectAll = () => {
     setSelectedCategories((prev) =>
-      prev.length === mockCategories.length
-        ? []
-        : mockCategories.map((cat) => cat.id)
+      prev.length === categories.length ? [] : categories.map((cat) => cat.id)
     );
   };
 
-  const filteredCategories = mockCategories.filter(
+  const filteredCategories = categories.filter(
     (category) =>
       category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       category.status.toLowerCase().includes(searchQuery.toLowerCase())
@@ -109,9 +100,7 @@ function CategoriesTable() {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={
-                      selectedCategories.length === mockCategories.length
-                    }
+                    checked={selectedCategories.length === categories.length}
                     onChange={toggleSelectAll}
                     className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
                   />
@@ -137,77 +126,93 @@ function CategoriesTable() {
 
           {/* Table Body */}
           <tbody>
-            {filteredCategories.map((category) => (
-              <tr
-                key={category.id}
-                className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200"
-              >
-                {/* Checkbox */}
-                <td className="px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category.id)}
-                    onChange={() => toggleCategorySelection(category.id)}
-                    className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </td>
-
-                {/* Category Name */}
-                <td className="px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 pb-2 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FeatherIcon
-                        name="folder"
-                        size={16}
-                        className="text-blue-500"
-                      />
-                    </div>
-                    <span className="font-[tajawal] font-medium text-gray-800">
-                      {category.name}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Products Count */}
-                <td className="px-4 py-4 text-center">
-                  <span className="font-[tajawal] text-gray-600 text-sm">
-                    {category.products} منتج
-                  </span>
-                </td>
-
-                {/* Status */}
-                <td className="px-4 py-4 text-center">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-[tajawal] font-medium ${
-                      category.status === "نشط"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
+            {filteredCategories.map(
+              (category) => (
+                console.log(category),
+                (
+                  <tr
+                    key={category.id}
+                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200"
                   >
-                    {category.status}
-                  </span>
-                </td>
+                    {/* Checkbox */}
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(category.id)}
+                        onChange={() => toggleCategorySelection(category.id)}
+                        className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </td>
 
-                {/* Created At */}
-                <td className="px-4 py-4 text-center">
-                  <span className="font-[tajawal] text-gray-600 text-sm">
-                    {category.createdAt}
-                  </span>
-                </td>
+                    {/* Category Name */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 pb-2 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <FeatherIcon
+                            name="folder"
+                            size={16}
+                            className="text-blue-500"
+                          />
+                        </div>
+                        <span className="font-[tajawal] font-medium text-gray-800">
+                          {category.name}
+                        </span>
+                      </div>
+                    </td>
 
-                {/* Actions */}
-                <td className="px-4 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors duration-200">
-                      <FeatherIcon name="edit" size={16} />
-                    </button>
-                    <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200">
-                      <FeatherIcon name="trash-2" size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    {/* Products Count */}
+                    <td className="px-4 py-4 text-center">
+                      <span className="font-[tajawal] text-gray-600 text-sm">
+                        {category.products
+                          ? category.products
+                          : "لا توجد منتجات"}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-4 text-center">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-[tajawal] font-medium ${
+                          category.is_active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {category.is_active ? "نشط" : "غير نشط"}
+                      </span>
+                    </td>
+
+                    {/* Created At */}
+                    <td className="px-4 py-4 text-center">
+                      <span className="font-[tajawal] text-gray-600 text-sm">
+                        {category.created_at
+                          ? new Date(category.created_at).toLocaleDateString(
+                              "ar-EG",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )
+                          : "غير معروف"}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors duration-200">
+                          <FeatherIcon name="edit" size={16} />
+                        </button>
+                        <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200">
+                          <FeatherIcon name="trash-2" size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )
+            )}
           </tbody>
         </table>
       </div>
@@ -215,7 +220,7 @@ function CategoriesTable() {
       {/* Table Footer */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-6 border-t border-gray-200">
         <div className="font-[tajawal] text-sm text-gray-600">
-          عرض {filteredCategories.length} من {mockCategories.length} تصنيف
+          عرض {filteredCategories.length} من {categories.length} تصنيف
         </div>
 
         <div className="flex items-center gap-2">
