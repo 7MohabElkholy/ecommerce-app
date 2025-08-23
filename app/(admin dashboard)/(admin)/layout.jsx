@@ -36,9 +36,9 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <main className="flex">
-      <Sidebar />
+    <main className="grid grid-cols-[1fr_256px] min-h-screen">
       {children}
+      <Sidebar />
     </main>
   );
 }
