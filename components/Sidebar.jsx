@@ -28,8 +28,13 @@ function Sidebar() {
     },
     {
       name: "إدارة التصنيفات",
-      href: "/admin/products",
+      href: "/admin/categories",
       icon: "grid",
+    },
+    {
+      name: "إدارة المنتجات",
+      href: "/admin/products",
+      icon: "shopping-bag",
     },
     {
       name: "الطلبات",
@@ -61,7 +66,7 @@ function Sidebar() {
   };
 
   return (
-    <div className="w-64 h-screen bg-white border-l border-gray-200 p-6 flex flex-col  right-0 fixed z-10">
+    <div className="w-64 h-screen bg-white border-l border-gray-200 p-6 flex flex-col  right-0 fixed z-10 overflow-scroll">
       {/* Header */}
       <div className="mb-8 flex flex-col text-right">
         <div className="flex items-center gap-3 mb-2 justify-end">
