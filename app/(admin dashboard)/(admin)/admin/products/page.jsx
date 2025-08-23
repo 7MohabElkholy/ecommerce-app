@@ -130,22 +130,22 @@ function ProductsTable() {
           <div className="relative">
             <input
               type="text"
-              placeholder="ابحث عن منتج..."
+              placeholder="...ابحث عن منتج"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-sm"
+              className="w-full sm:w-64 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-sm"
             />
             <FeatherIcon
               name="search"
               size={18}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 pb-6 text-gray-400"
             />
           </div>
 
           {/* Add Product Button */}
           <button
             onClick={handleAdd}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-[tajawal] font-medium text-sm transition-colors duration-300 flex items-center gap-2"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-[tajawal] font-medium text-sm transition-colors duration-300 flex items-start gap-2"
           >
             <FeatherIcon name="plus" size={16} />
             إضافة منتج

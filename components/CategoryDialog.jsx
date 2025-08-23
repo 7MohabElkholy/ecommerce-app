@@ -160,7 +160,9 @@ function CategoryDialog({ isOpen, onClose, category = null, onSuccess }) {
               <span className="font-[tajawal] text-gray-700">
                 {formData.is_active ? "نشط" : "غير نشط"}
               </span>
-              <div className="relative inline-flex items-center cursor-pointer">
+
+              {/* Toggle switch */}
+              <div className="relative inline-flex items-center">
                 <input
                   type="checkbox"
                   checked={formData.is_active}
@@ -169,17 +171,19 @@ function CategoryDialog({ isOpen, onClose, category = null, onSuccess }) {
                   }
                   className="sr-only"
                 />
+
+                {/* Background */}
                 <div
                   className={`w-12 h-6 rounded-full transition-colors duration-200 ${
                     formData.is_active ? "bg-blue-500" : "bg-gray-300"
                   }`}
                 />
+
+                {/* Circle */}
                 <div
-                  className={`absolute top-0.5 transform transition-transform duration-200 ${
-                    formData.is_active
-                      ? "translate-x-6 right-0.5"
-                      : "translate-x-0 right-0.5"
-                  } w-5 h-5 bg-white rounded-full`}
+                  className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+                    formData.is_active ? "translate-x-6" : "translate-x-0"
+                  }`}
                 />
               </div>
             </label>
@@ -207,7 +211,7 @@ function CategoryDialog({ isOpen, onClose, category = null, onSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-[tajawal] font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-[tajawal] font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-start justify-center gap-2"
             >
               {loading ? (
                 <>

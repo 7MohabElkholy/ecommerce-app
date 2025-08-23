@@ -13,7 +13,7 @@ function SearchBar({ onSearch, placeholder = "...ابحث عن المنتجات"
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-row-reverse px-4 py-2 justify-between items-center w-full max-w-md rounded-lg border border-gray-200 focus:border-blue-500"
+      className="flex flex-row-reverse px-4 py-2 justify-between items-center w-full max-w-sm rounded-lg border border-gray-200 focus:border-blue-500"
     >
       <input
         type="text"

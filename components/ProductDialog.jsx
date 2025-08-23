@@ -152,8 +152,10 @@ function ProductDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+      <div className="absolute left-0 right-0 top-0 bg-black opacity-30 w-dvw h-dvh"></div>
+
+      <div className="fixed bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
           <h2 className="font-[tajawal] text-xl font-bold text-gray-800">
@@ -324,7 +326,11 @@ function ProductDialog({
                 <span className="font-[tajawal] text-gray-700 text-sm">
                   {formData.in_stock ? "متوفر" : "نفذ"}
                 </span>
-                <div className="relative inline-flex items-center cursor-pointer">
+                <div
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+                    formData.in_stock ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={formData.in_stock}
@@ -334,16 +340,9 @@ function ProductDialog({
                     className="sr-only"
                   />
                   <div
-                    className={`w-12 h-6 rounded-full transition-colors duration-200 ${
-                      formData.in_stock ? "bg-green-500" : "bg-gray-300"
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                      formData.in_stock ? "translate-x-6" : "translate-x-0"
                     }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 transform transition-transform duration-200 ${
-                      formData.in_stock
-                        ? "translate-x-6 right-0.5"
-                        : "translate-x-0 right-0.5"
-                    } w-5 h-5 bg-white rounded-full`}
                   />
                 </div>
               </label>
@@ -355,7 +354,11 @@ function ProductDialog({
                 <span className="font-[tajawal] text-gray-700 text-sm">
                   {formData.is_hot ? "مميز" : "عادي"}
                 </span>
-                <div className="relative inline-flex items-center cursor-pointer">
+                <div
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+                    formData.is_hot ? "bg-red-500" : "bg-gray-300"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={formData.is_hot}
@@ -365,16 +368,9 @@ function ProductDialog({
                     className="sr-only"
                   />
                   <div
-                    className={`w-12 h-6 rounded-full transition-colors duration-200 ${
-                      formData.is_hot ? "bg-red-500" : "bg-gray-300"
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                      formData.is_hot ? "translate-x-6" : "translate-x-0"
                     }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 transform transition-transform duration-200 ${
-                      formData.is_hot
-                        ? "translate-x-6 right-0.5"
-                        : "translate-x-0 right-0.5"
-                    } w-5 h-5 bg-white rounded-full`}
                   />
                 </div>
               </label>
@@ -386,7 +382,11 @@ function ProductDialog({
                 <span className="font-[tajawal] text-gray-700 text-sm">
                   {formData.is_new ? "جديد" : "قديم"}
                 </span>
-                <div className="relative inline-flex items-center cursor-pointer">
+                <div
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
+                    formData.is_new ? "bg-blue-500" : "bg-gray-300"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={formData.is_new}
@@ -396,16 +396,9 @@ function ProductDialog({
                     className="sr-only"
                   />
                   <div
-                    className={`w-12 h-6 rounded-full transition-colors duration-200 ${
-                      formData.is_new ? "bg-blue-500" : "bg-gray-300"
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                      formData.is_new ? "translate-x-6" : "translate-x-0"
                     }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 transform transition-transform duration-200 ${
-                      formData.is_new
-                        ? "translate-x-6 right-0.5"
-                        : "translate-x-0 right-0.5"
-                    } w-5 h-5 bg-white rounded-full`}
                   />
                 </div>
               </label>
@@ -434,7 +427,7 @@ function ProductDialog({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-[tajawal] font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-[tajawal] font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-start justify-center gap-2"
             >
               {loading ? (
                 <>

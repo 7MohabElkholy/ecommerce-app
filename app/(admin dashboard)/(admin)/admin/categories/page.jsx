@@ -10,29 +10,49 @@ function CategoriesTable() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [page, setPage] = useState(1);
+  const pageSize = 5; // how many per page
+  const [totalCount, setTotalCount] = useState(0);
+
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-
   const fetchCategories = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+
+    // calculate range
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
       .from("categories_with_counts")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" }) // 🔑 fetch count too
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    // 🔍 Search filtering
+    if (searchQuery.trim() !== "") {
+      query = query.ilike("name", `%${searchQuery}%`);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
       console.error("fetch categories error", error);
       setCategories([]);
     } else {
       setCategories(data || []);
+      setTotalCount(count || 0);
     }
     setLoading(false);
   };
 
+  // re-fetch on page/search change
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [page, searchQuery]);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const toggleCategorySelection = (id) => {
     setSelectedCategories((prev) =>
@@ -82,12 +102,12 @@ function CategoriesTable() {
       )
   );
 
-  if (loading)
-    return (
-      <div className="w-full p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+  // if (loading)
+  //   return (
+  //     <div className="w-full p-6 flex items-center justify-center">
+  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+  //     </div>
+  //   );
 
   return (
     <div className="w-full p-6">
@@ -107,22 +127,22 @@ function CategoriesTable() {
           <div className="relative">
             <input
               type="text"
-              placeholder="ابحث عن تصنيف..."
+              placeholder="...ابحث عن تصنيف"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-sm"
+              className="w-full sm:w-64 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-sm"
             />
             <FeatherIcon
               name="search"
               size={18}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pb-6"
             />
           </div>
 
           {/* Add Category Button */}
           <button
             onClick={handleAdd}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-[tajawal] font-medium text-sm transition-colors duration-300 flex items-center gap-2"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-[tajawal] font-medium text-sm transition-colors duration-300 flex items-start gap-2"
           >
             <FeatherIcon name="plus" size={16} />
             إضافة تصنيف
@@ -184,7 +204,7 @@ function CategoriesTable() {
                 {/* Category Name */}
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 pb-2 bg-blue-100 rounded-lg flex items-center justify-center">
                       <FeatherIcon
                         name="folder"
                         size={16}
@@ -259,20 +279,38 @@ function CategoriesTable() {
       {/* Table Footer */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-6 border-t border-gray-200">
         <div className="font-[tajawal] text-sm text-gray-600">
-          عرض {filteredCategories.length} من {categories.length} تصنيف
+          عرض {categories.length} من {totalCount} تصنيف
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          >
             السابق
           </button>
-          <button className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
-            1
-          </button>
-          <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200">
-            2
-          </button>
-          <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200">
+
+          {/* Page numbers */}
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setPage(i + 1)}
+              className={`px-3 py-2 rounded-lg transition-colors duration-200 ${
+                page === i + 1
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          >
             التالي
           </button>
         </div>

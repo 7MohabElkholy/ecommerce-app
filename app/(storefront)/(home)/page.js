@@ -3,9 +3,18 @@ import Card from "@/components/Card";
 import Hero from "@/components/Hero";
 import Image from "next/image";
 import placeholder from "@/public/placeholder.jpg";
-import Footer from "@/components/Footer";
+import { supabase } from "@/app/lib/supabaseClient";
 
-export default function Home() {
+export default async function Home() {
+  const { data: products, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("is_hot", true);
+
+  if (error) {
+    console.error("Error fetching products:", error.message);
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Hero />
@@ -19,14 +28,15 @@ export default function Home() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 w-full max-w-6xl mx-auto mt-6">
-          <Card />
-          <Card />
-          <Card />
-          <Card />
-          <Card />
-          <Card />
-          <Card />
-          <Card />
+          {products?.length > 0 ? (
+            products.map((product) => (
+              <Card key={product.id} product={product} />
+            ))
+          ) : (
+            <p className="font-[tajawal] text-gray-600 text-center col-span-full">
+              لا توجد عروض مميزة حالياً
+            </p>
+          )}
         </div>
       </section>
 

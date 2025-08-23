@@ -3,13 +3,13 @@ import Image from "next/image";
 import placeholder from "@/public/placeholder.jpg";
 import FeatherIcon from "./FeatherIcon";
 
-function Card({ title, description, image }) {
+function Card({ product }) {
   return (
     <div className="flex flex-col shadow-md rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 bg-white min-w-[250px] h-full">
       <div className="relative w-full h-48">
         <Image
-          src={image || placeholder}
-          alt={title || "Product Image"}
+          src={product.thumbnail_url || placeholder}
+          alt={product.title || "Product Image"}
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -19,10 +19,10 @@ function Card({ title, description, image }) {
       <div className="flex flex-col text-right p-4 flex-grow justify-between">
         <div>
           <h3 className="font-[tajawal] font-bold text-base mb-2 text-gray-800">
-            {title || "اسم المنتج"}
+            {product.title || "اسم المنتج"}
           </h3>
-          <p className="font-[tajawal] text-sm text-gray-600 mb-3">
-            {description || "وصف المنتج"}
+          <p className="font-[tajawal] text-sm text-gray-600 mb-3 line-clamp-2">
+            {product.description || "وصف المنتج"}
           </p>
         </div>
 
