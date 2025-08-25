@@ -138,8 +138,10 @@ function ProductsPage() {
     <div className="min-h-screen flex flex-col">
       {/* Category Selection Overlay */}
       {showCategoryOverlay && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md p-6">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="absolute left-0 right-0 top-0 bg-black opacity-30 w-dvw h-dvh"></div>
+
+          <div className="fixed bg-white rounded-lg w-full max-w-md p-6">
             <h3 className="font-[tajawal] text-xl font-bold text-gray-800 mb-4 text-right">
               اختر الفئات
             </h3>

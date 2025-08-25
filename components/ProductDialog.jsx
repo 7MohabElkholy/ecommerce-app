@@ -3,6 +3,103 @@ import React, { useState, useEffect } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
 import { supabase } from "../app/lib/supabaseClient";
 
+const arabicToSlug = (text) => {
+  if (!text) return "";
+
+  const arabicMap = {
+    ء: "a",
+    أ: "a",
+    آ: "a",
+    إ: "i",
+    ئ: "e",
+    ا: "a",
+    ب: "b",
+    ت: "t",
+    ث: "th",
+    ج: "j",
+    ح: "h",
+    خ: "kh",
+    د: "d",
+    ذ: "th",
+    ر: "r",
+    ز: "z",
+    س: "s",
+    ش: "sh",
+    ص: "s",
+    ض: "d",
+    ط: "t",
+    ظ: "z",
+    ع: "a",
+    غ: "gh",
+    ف: "f",
+    ق: "q",
+    ك: "k",
+    ل: "l",
+    م: "m",
+    ن: "n",
+    ه: "h",
+    و: "w",
+    ى: "a",
+    ي: "y",
+    ة: "h",
+    " ": "-",
+    _: "-",
+    ".": "",
+    "،": "",
+    "؛": "",
+    ":": "",
+    "!": "",
+    "؟": "",
+    "(": "",
+    ")": "",
+    "[": "",
+    "]": "",
+    "{": "",
+    "}": "",
+    "/": "",
+    "\\": "",
+    "'": "",
+    '"': "",
+    "`": "",
+    "~": "",
+    "@": "",
+    "#": "",
+    $: "",
+    "%": "",
+    "^": "",
+    "&": "",
+    "*": "",
+    "+": "",
+    "=": "",
+    "|": "",
+    "<": "",
+    ">": "",
+    "؛": "",
+    "،": "",
+    "؟": "",
+    "٠": "0",
+    "١": "1",
+    "٢": "2",
+    "٣": "3",
+    "٤": "4",
+    "٥": "5",
+    "٦": "6",
+    "٧": "7",
+    "٨": "8",
+    "٩": "9",
+  };
+
+  return text
+    .split("")
+    .map((char) => arabicMap[char] || char)
+    .join("")
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]+/g, "") // Remove invalid chars
+    .replace(/\-{2,}/g, "-") // Replace multiple - with single -
+    .replace(/^\-+/, "") // Trim - from start
+    .replace(/\-+$/, ""); // Trim - from end
+};
+
 function ProductDialog({
   isOpen,
   onClose,
@@ -21,6 +118,7 @@ function ProductDialog({
     in_stock: true,
     is_hot: false,
     is_new: false,
+    slug: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -36,6 +134,7 @@ function ProductDialog({
         in_stock: product.in_stock ?? true,
         is_hot: product.is_hot || false,
         is_new: product.is_new || false,
+        slug: product.slug || "",
       });
     } else {
       setFormData({
@@ -48,10 +147,19 @@ function ProductDialog({
         in_stock: true,
         is_hot: false,
         is_new: false,
+        slug: "",
       });
     }
     setErrors({});
   }, [product, isOpen]);
+
+  // Generate slug when title changes for new products
+  useEffect(() => {
+    if (formData.title && !product) {
+      const generatedSlug = arabicToSlug(formData.title);
+      setFormData((prev) => ({ ...prev, slug: generatedSlug }));
+    }
+  }, [formData.title, product]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -70,6 +178,13 @@ function ProductDialog({
 
     if (!formData.category_id) {
       newErrors.category_id = "التصنيف مطلوب";
+    }
+
+    if (!formData.slug.trim()) {
+      newErrors.slug = "الرابط SEO مطلوب";
+    } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.slug)) {
+      newErrors.slug =
+        "الرابط يجب أن يحتوي على حروف إنجليزية صغيرة وأرقام وشرطات فقط";
     }
 
     setErrors(newErrors);
@@ -94,6 +209,7 @@ function ProductDialog({
         in_stock: formData.in_stock,
         is_hot: formData.is_hot,
         is_new: formData.is_new,
+        slug: formData.slug.trim(),
       };
 
       if (product) {
@@ -115,7 +231,13 @@ function ProductDialog({
       onClose();
     } catch (error) {
       console.error("Error saving product:", error);
-      setErrors({ submit: error.message });
+      if (error.code === "23505") {
+        setErrors({
+          submit: "هذا الرابط (slug) مستخدم بالفعل، يرجى اختيار رابط آخر",
+        });
+      } else {
+        setErrors({ submit: error.message });
+      }
     } finally {
       setLoading(false);
     }
@@ -212,6 +334,49 @@ function ProductDialog({
               </p>
             )}
           </div>
+
+          {/* 
+          <div className="space-y-2">
+            <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right">
+              رابط SEO (Slug) *
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange("slug", e.target.value)}
+                  placeholder="رابط SEO للمنتج"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-gray-800 placeholder-gray-400 transition-colors duration-300"
+                />
+                <FeatherIcon
+                  name="link"
+                  size={20}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newSlug = arabicToSlug(formData.title);
+                  handleInputChange("slug", newSlug);
+                }}
+                className="px-3 py-3 bg-gray-200 text-gray-700 rounded-lg font-[tajawal] hover:bg-gray-300 transition-colors duration-300 whitespace-nowrap"
+                title="إعادة توليد الرابط"
+              >
+                <FeatherIcon name="refresh-cw" size={16} />
+              </button>
+            </div>
+            {errors.slug && (
+              <p className="text-red-500 font-[tajawal] text-sm text-right">
+                {errors.slug}
+              </p>
+            )}
+            <p className="text-gray-500 font-[tajawal] text-xs text-right">
+              هذا الرابط سيظهر في عنوان URL للمنتج. مثال:{" "}
+              {formData.slug || "product-name"}
+            </p>
+          </div> */}
 
           {/* Price and Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
