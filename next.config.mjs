@@ -1,6 +1,6 @@
 const nextConfig = {
   images: {
-    domains: ["picsum.photos"],
+    domains: ["picsum.photos", "osokzjtcacunxidzoolg.supabase.co"],
   },
 };
 

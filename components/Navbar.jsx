@@ -29,7 +29,7 @@ function Navbar() {
 
       <div className="flex items-center justify-end gap-2 flex-1">
         <p className="font-[tajawal] font-bold">متجر الكتروني</p>
-        <Image src={logo} width={48} height={48} />
+        <Image alt="the logo of the store" src={logo} width={48} height={48} />
       </div>
     </nav>
   );

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
 import { supabase } from "../app/lib/supabaseClient";
 
@@ -94,10 +94,10 @@ const arabicToSlug = (text) => {
     .map((char) => arabicMap[char] || char)
     .join("")
     .toLowerCase()
-    .replace(/[^a-z0-9\-]+/g, "") // Remove invalid chars
-    .replace(/\-{2,}/g, "-") // Replace multiple - with single -
-    .replace(/^\-+/, "") // Trim - from start
-    .replace(/\-+$/, ""); // Trim - from end
+    .replace(/[^a-z0-9\-]+/g, "")
+    .replace(/\-{2,}/g, "-")
+    .replace(/^\-+/, "")
+    .replace(/\-+$/, "");
 };
 
 function ProductDialog({
@@ -108,6 +108,7 @@ function ProductDialog({
   onSuccess,
 }) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -121,6 +122,8 @@ function ProductDialog({
     slug: "",
   });
   const [errors, setErrors] = useState({});
+  const fileInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   useEffect(() => {
     if (product) {
@@ -160,6 +163,149 @@ function ProductDialog({
       setFormData((prev) => ({ ...prev, slug: generatedSlug }));
     }
   }, [formData.title, product]);
+
+  // Upload image to Supabase Storage
+  const uploadImage = async (file, isThumbnail = false) => {
+    try {
+      setUploading(true);
+
+      // Generate unique file name
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random()
+        .toString(36)
+        .substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from("product-images")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath);
+
+      if (isThumbnail) {
+        handleInputChange("thumbnail_url", publicUrl);
+      } else {
+        // Add to gallery
+        setFormData((prev) => ({
+          ...prev,
+          gallery: [...prev.gallery, publicUrl],
+        }));
+      }
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      setErrors({ submit: `فشل في رفع الصورة: ${error.message}` });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle thumbnail image upload
+  const handleThumbnailUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith("image/")) {
+      setErrors({ submit: "الملف يجب أن يكون صورة" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      // 5MB limit
+      setErrors({ submit: "حجم الصورة يجب أن يكون أقل من 5MB" });
+      return;
+    }
+
+    await uploadImage(file, true);
+  };
+
+  // Handle gallery images upload
+  const handleGalleryUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    // Validate files
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        setErrors({ submit: "جميع الملفات يجب أن تكون صور" });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors({ submit: "حجم كل صورة يجب أن يكون أقل من 5MB" });
+        return;
+      }
+    }
+
+    // Upload each file
+    for (const file of files) {
+      await uploadImage(file, false);
+    }
+  };
+
+  // Remove image from gallery
+  const removeGalleryImage = async (index, imageUrl) => {
+    try {
+      // Extract file path from URL
+      const urlParts = imageUrl.split("/");
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `products/${fileName}`;
+
+      // Delete from Supabase Storage
+      const { error } = await supabase.storage
+        .from("product-images")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Error deleting image:", error);
+      }
+
+      // Remove from local state
+      setFormData((prev) => ({
+        ...prev,
+        gallery: prev.gallery.filter((_, i) => i !== index),
+      }));
+    } catch (error) {
+      console.error("Error removing image:", error);
+    }
+  };
+
+  // Remove thumbnail image
+  const removeThumbnail = async () => {
+    if (!formData.thumbnail_url) return;
+
+    try {
+      // Extract file path from URL
+      const urlParts = formData.thumbnail_url.split("/");
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `products/${fileName}`;
+
+      // Delete from Supabase Storage
+      const { error } = await supabase.storage
+        .from("product-images")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Error deleting thumbnail:", error);
+      }
+
+      // Remove from local state
+      handleInputChange("thumbnail_url", "");
+    } catch (error) {
+      console.error("Error removing thumbnail:", error);
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -250,27 +396,6 @@ function ProductDialog({
     }
   };
 
-  const addGalleryImage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      gallery: [...prev.gallery, ""],
-    }));
-  };
-
-  const removeGalleryImage = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      gallery: prev.gallery.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateGalleryImage = (index, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      gallery: prev.gallery.map((url, i) => (i === index ? value : url)),
-    }));
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -335,49 +460,6 @@ function ProductDialog({
             )}
           </div>
 
-          {/* 
-          <div className="space-y-2">
-            <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right">
-              رابط SEO (Slug) *
-            </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => handleInputChange("slug", e.target.value)}
-                  placeholder="رابط SEO للمنتج"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-gray-800 placeholder-gray-400 transition-colors duration-300"
-                />
-                <FeatherIcon
-                  name="link"
-                  size={20}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const newSlug = arabicToSlug(formData.title);
-                  handleInputChange("slug", newSlug);
-                }}
-                className="px-3 py-3 bg-gray-200 text-gray-700 rounded-lg font-[tajawal] hover:bg-gray-300 transition-colors duration-300 whitespace-nowrap"
-                title="إعادة توليد الرابط"
-              >
-                <FeatherIcon name="refresh-cw" size={16} />
-              </button>
-            </div>
-            {errors.slug && (
-              <p className="text-red-500 font-[tajawal] text-sm text-right">
-                {errors.slug}
-              </p>
-            )}
-            <p className="text-gray-500 font-[tajawal] text-xs text-right">
-              هذا الرابط سيظهر في عنوان URL للمنتج. مثال:{" "}
-              {formData.slug || "product-name"}
-            </p>
-          </div> */}
-
           {/* Price and Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Price Field */}
@@ -432,54 +514,108 @@ function ProductDialog({
             </div>
           </div>
 
-          {/* Thumbnail URL */}
+          {/* Thumbnail Image Upload */}
           <div>
             <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right mb-2">
-              صورة المصغرة (URL)
+              صورة المصغرة *
             </label>
-            <input
-              type="url"
-              value={formData.thumbnail_url}
-              onChange={(e) =>
-                handleInputChange("thumbnail_url", e.target.value)
-              }
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right transition-colors duration-200"
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-
-          {/* Gallery Images */}
-          <div>
-            <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right mb-2">
-              معرض الصور
-            </label>
-            <div className="space-y-2">
-              {formData.gallery.map((url, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(e) => updateGalleryImage(index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right text-sm"
-                    placeholder="https://example.com/image.jpg"
+            <div className="space-y-3">
+              {formData.thumbnail_url ? (
+                <div className="relative">
+                  <img
+                    src={formData.thumbnail_url}
+                    alt="Thumbnail preview"
+                    className="w-full h-48 object-cover rounded-lg border border-gray-200"
                   />
                   <button
                     type="button"
-                    onClick={() => removeGalleryImage(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                    onClick={removeThumbnail}
+                    className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors duration-200"
                   >
                     <FeatherIcon name="trash-2" size={16} />
                   </button>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={addGalleryImage}
-                className="flex items-center gap-2 text-blue-500 hover:text-blue-600 font-[tajawal] text-sm mt-2"
+              ) : (
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 transition-colors duration-200"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <FeatherIcon
+                    name="upload"
+                    size={32}
+                    className="text-gray-400 mx-auto mb-2"
+                  />
+                  <p className="font-[tajawal] text-gray-500 text-sm">
+                    انقر لرفع صورة المصغرة
+                  </p>
+                  <p className="font-[tajawal] text-gray-400 text-xs">
+                    PNG, JPG, GIF up to 5MB
+                  </p>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleThumbnailUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Gallery Images Upload */}
+          <div>
+            <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right mb-2">
+              معرض الصور
+            </label>
+            <div className="space-y-3">
+              {/* Gallery images grid */}
+              {formData.gallery.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {formData.gallery.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Gallery ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(index, url)}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        <FeatherIcon name="x" size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload area */}
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors duration-200"
+                onClick={() => galleryInputRef.current?.click()}
               >
-                <FeatherIcon name="plus" size={16} />
-                إضافة صورة أخرى
-              </button>
+                <FeatherIcon
+                  name="image"
+                  size={24}
+                  className="text-gray-400 mx-auto mb-2"
+                />
+                <p className="font-[tajawal] text-gray-500 text-sm">
+                  انقر لرفع صور للمعرض (يمكنك رفع عدة صور مرة واحدة)
+                </p>
+                <p className="font-[tajawal] text-gray-400 text-xs">
+                  PNG, JPG, GIF up to 5MB each
+                </p>
+              </div>
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleGalleryUpload}
+                className="hidden"
+              />
             </div>
           </div>
 
@@ -570,6 +706,18 @@ function ProductDialog({
             </div>
           </div>
 
+          {/* Uploading Indicator */}
+          {uploading && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 justify-end">
+                <span className="font-[tajawal] text-blue-700 text-sm">
+                  جاري رفع الصور...
+                </span>
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            </div>
+          )}
+
           {/* Submit Error */}
           {errors.submit && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -585,13 +733,13 @@ function ProductDialog({
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-[tajawal] font-medium hover:bg-gray-50 transition-colors duration-200"
-              disabled={loading}
+              disabled={loading || uploading}
             >
               إلغاء
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploading}
               className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-[tajawal] font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-start justify-center gap-2"
             >
               {loading ? (

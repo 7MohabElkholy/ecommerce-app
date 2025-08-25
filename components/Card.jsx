@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import placeholder from "@/public/placeholder.jpg";
 import FeatherIcon from "./FeatherIcon";
+import Link from "next/link";
 
 function Card({ product }) {
   return (
@@ -26,9 +27,12 @@ function Card({ product }) {
           </p>
         </div>
 
-        <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium font-[tajawal] transition-colors duration-300">
+        <Link
+          href={`/products/${product.slug}`}
+          className="text-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium font-[tajawal] transition-colors duration-300"
+        >
           إشترِ الآن
-        </button>
+        </Link>
       </div>
     </div>
   );
