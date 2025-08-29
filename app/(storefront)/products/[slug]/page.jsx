@@ -1,7 +1,284 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect, useRef } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Card from "@/components/Card";
+
+// Gallery Modal Component
+function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+  const imageRef = useRef(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    // Prevent scrolling when modal is open
+    document.body.style.overflow = "hidden";
+
+    // Prevent text selection globally while modal is open
+    const preventSelection = (e) => e.preventDefault();
+    document.addEventListener("selectstart", preventSelection);
+
+    return () => {
+      document.body.style.overflow = "unset";
+      document.removeEventListener("selectstart", preventSelection);
+    };
+  }, []);
+
+  const handleImageClick = (e) => {
+    // Reset zoom on double click
+    if (e.detail === 2) {
+      setZoomLevel(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    const newZoomLevel = Math.max(0.5, Math.min(5, zoomLevel + delta));
+
+    if (imageRef.current) {
+      const rect = imageRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      setZoomLevel(newZoomLevel);
+
+      // Adjust position to zoom towards cursor
+      if (newZoomLevel > 1) {
+        const scaleChange = newZoomLevel - zoomLevel;
+        setPosition((prev) => ({
+          x: prev.x - x * scaleChange,
+          y: prev.y - y * scaleChange,
+        }));
+      }
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (zoomLevel > 1) {
+      e.preventDefault(); // Prevent text selection
+      setIsDragging(true);
+      setStartPosition({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      });
+
+      // Add user-select none to prevent selection
+      if (containerRef.current) {
+        containerRef.current.style.userSelect = "none";
+      }
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging && zoomLevel > 1) {
+      e.preventDefault(); // Prevent text selection
+      setPosition({
+        x: e.clientX - startPosition.x,
+        y: e.clientY - startPosition.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+
+    // Restore user-select
+    if (containerRef.current) {
+      containerRef.current.style.userSelect = "";
+    }
+  };
+
+  const handleZoomIn = () => {
+    const newZoomLevel = Math.min(5, zoomLevel + 0.5);
+    setZoomLevel(newZoomLevel);
+
+    // Center zoom if not already zoomed
+    if (zoomLevel === 1) {
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleZoomOut = () => {
+    const newZoomLevel = Math.max(0.5, zoomLevel - 0.5);
+    setZoomLevel(newZoomLevel);
+
+    // Reset position when fully zoomed out
+    if (newZoomLevel === 1) {
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const resetZoom = () => {
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowLeft") {
+        onNavigate(currentIndex - 1);
+      } else if (e.key === "ArrowRight") {
+        onNavigate(currentIndex + 1);
+      } else if (e.key === "0" || e.key === " ") {
+        resetZoom();
+      } else if (e.key === "+" || e.key === "=") {
+        handleZoomIn();
+      } else if (e.key === "-" || e.key === "_") {
+        handleZoomOut();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex, onClose, onNavigate]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4 select-none"
+      style={{ userSelect: "none" }}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 left-4 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-all duration-200"
+      >
+        <FeatherIcon name="x" size={24} />
+      </button>
+
+      {/* Navigation arrows */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={() => onNavigate(currentIndex - 1)}
+            disabled={currentIndex === 0}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-3 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 disabled:opacity-30 transition-all duration-200"
+          >
+            <FeatherIcon name="chevron-left" size={24} />
+          </button>
+          <button
+            onClick={() => onNavigate(currentIndex + 1)}
+            disabled={currentIndex === images.length - 1}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-3 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 disabled:opacity-30 transition-all duration-200"
+          >
+            <FeatherIcon name="chevron-right" size={24} />
+          </button>
+        </>
+      )}
+
+      {/* Zoom controls */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-black bg-opacity-50 rounded-full p-2">
+        <button
+          onClick={handleZoomOut}
+          disabled={zoomLevel <= 0.5}
+          className="p-1 text-white hover:bg-white hover:bg-opacity-20 rounded-full transition-colors duration-200 disabled:opacity-30"
+        >
+          <FeatherIcon name="zoom-out" size={20} />
+        </button>
+        <button
+          onClick={resetZoom}
+          className="p-1 text-white hover:bg-white hover:bg-opacity-20 rounded-full transition-colors duration-200 text-xs font-medium"
+        >
+          {Math.round(zoomLevel * 100)}%
+        </button>
+        <button
+          onClick={handleZoomIn}
+          disabled={zoomLevel >= 5}
+          className="p-1 text-white hover:bg-white hover:bg-opacity-20 rounded-full transition-colors duration-200 disabled:opacity-30"
+        >
+          <FeatherIcon name="zoom-in" size={20} />
+        </button>
+      </div>
+
+      {/* Image counter */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+        {currentIndex + 1} / {images.length}
+      </div>
+
+      {/* Main image container */}
+      <div
+        className="relative w-full h-full max-w-4xl max-h-[80vh] overflow-hidden"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{
+          cursor:
+            zoomLevel > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in",
+          userSelect: "none",
+        }}
+      >
+        <div
+          className="w-full h-full flex items-center justify-center"
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            transition: isDragging ? "none" : "transform 0.2s ease-out",
+            userSelect: "none",
+          }}
+        >
+          <img
+            ref={imageRef}
+            src={images[currentIndex]}
+            alt={`Gallery image ${currentIndex + 1}`}
+            className="max-w-full max-h-full object-contain select-none"
+            style={{
+              transform: `scale(${zoomLevel})`,
+              transition: "transform 0.2s ease-out",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              MozUserSelect: "none",
+              msUserSelect: "none",
+            }}
+            onClick={handleImageClick}
+            onDragStart={(e) => e.preventDefault()} // Prevent native drag behavior
+          />
+        </div>
+      </div>
+
+      {/* Thumbnail strip */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex gap-2 max-w-full overflow-x-auto pb-2">
+          {images.map((img, index) => (
+            <button
+              key={index}
+              onClick={() => onNavigate(index)}
+              className={`w-16 h-16 flex-shrink-0 border-2 rounded-lg overflow-hidden transition-all duration-200 select-none ${
+                index === currentIndex
+                  ? "border-blue-500 ring-2 ring-blue-300"
+                  : "border-transparent hover:border-gray-400"
+              }`}
+            >
+              <img
+                src={img}
+                alt={`Thumbnail ${index + 1}`}
+                className="w-full h-full object-cover select-none"
+                onDragStart={(e) => e.preventDefault()} // Prevent native drag behavior
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="absolute bottom-4 right-4 z-10 bg-black bg-opacity-50 text-white px-3 py-2 rounded-lg text-xs hidden md:block">
+        <div>استخدم عجلة الماوس للتصغير/التكبير</div>
+        <div>اضغط مطولاً وسحب للتحريك عند التكبير</div>
+        <div>اضغط نقرتين لإعادة التعيين</div>
+      </div>
+    </div>
+  );
+}
+
+// ... (rest of the code remains exactly the same)
 
 async function getProduct(slug) {
   const supabase = createClientComponentClient();
@@ -49,13 +326,63 @@ async function getRelatedProducts(categoryId, currentProductId) {
   return relatedProducts;
 }
 
-export default async function ProductPage({ params }) {
+export default function ProductPage({ params }) {
   const { slug } = params;
-  const product = await getProduct(slug);
+  const [product, setProduct] = React.useState(null);
+  const [relatedProducts, setRelatedProducts] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [galleryModal, setGalleryModal] = React.useState({
+    isOpen: false,
+    currentIndex: 0,
+  });
 
-  let relatedProducts = [];
-  if (product) {
-    relatedProducts = await getRelatedProducts(product.category_id, product.id);
+  React.useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const productData = await getProduct(slug);
+      setProduct(productData);
+
+      if (productData) {
+        const related = await getRelatedProducts(
+          productData.category_id,
+          productData.id
+        );
+        setRelatedProducts(related);
+      }
+
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [slug]);
+
+  const openGalleryModal = (index = 0) => {
+    setGalleryModal({
+      isOpen: true,
+      currentIndex: index,
+    });
+  };
+
+  const closeGalleryModal = () => {
+    setGalleryModal({
+      isOpen: false,
+      currentIndex: 0,
+    });
+  };
+
+  const navigateGallery = (index) => {
+    setGalleryModal((prev) => ({
+      ...prev,
+      currentIndex: index,
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   if (!product) {
@@ -84,8 +411,22 @@ export default async function ProductPage({ params }) {
     );
   }
 
+  // Combine thumbnail with gallery images
+  const allImages = [product.thumbnail_url, ...(product.gallery || [])].filter(
+    Boolean
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {galleryModal.isOpen && (
+        <GalleryModal
+          images={allImages}
+          currentIndex={galleryModal.currentIndex}
+          onClose={closeGalleryModal}
+          onNavigate={navigateGallery}
+        />
+      )}
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex justify-end mb-8">
@@ -130,7 +471,10 @@ export default async function ProductPage({ params }) {
             {/* Product Images */}
             <div className="space-y-4">
               {/* Main Image */}
-              <div className="relative bg-gray-100 rounded-xl overflow-hidden aspect-square group">
+              <div
+                className="relative bg-gray-100 rounded-xl overflow-hidden aspect-square group cursor-zoom-in"
+                onClick={() => openGalleryModal(0)}
+              >
                 <img
                   src={product.thumbnail_url || "/placeholder-image.jpg"}
                   alt={product.title}
@@ -154,21 +498,42 @@ export default async function ProductPage({ params }) {
                     </span>
                   )}
                 </div>
+                {/* View all images button */}
+                {allImages.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openGalleryModal(0);
+                    }}
+                    className="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-3 py-2 rounded-lg text-sm font-[tajawal] hover:bg-opacity-80 transition-colors duration-200"
+                  >
+                    عرض جميع الصور ({allImages.length})
+                  </button>
+                )}
               </div>
 
-              {/* Gallery */}
-              {product.gallery && product.gallery.length > 0 && (
+              {/* Gallery Thumbnails */}
+              {allImages.length > 1 && (
                 <div className="grid grid-cols-4 gap-3">
-                  {product.gallery.slice(0, 4).map((image, index) => (
+                  {allImages.slice(0, 8).map((image, index) => (
                     <div
                       key={index}
-                      className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-blue-400 transition-all duration-200 group"
+                      className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-blue-400 transition-all duration-200 group relative"
+                      onClick={() => openGalleryModal(index)}
                     >
                       <img
                         src={image}
                         alt={`${product.title} - صورة ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
+                      {/* Show more indicator for additional images */}
+                      {index === 7 && allImages.length > 8 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+                          <span className="text-white font-[tajawal] text-sm font-medium">
+                            +{allImages.length - 8}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -178,7 +543,7 @@ export default async function ProductPage({ params }) {
             {/* Product Info */}
             <div className="space-y-6">
               {/* Category */}
-              <div className="flex items-center justify-end gap-2">
+              {/* <div className="flex items-center justify-end gap-2">
                 <a
                   href={`/categories/${product.categories?.slug}`}
                   className="font-[tajawal] text-sm text-blue-500 hover:text-blue-600 transition-colors duration-200"
@@ -186,7 +551,7 @@ export default async function ProductPage({ params }) {
                   {product.categories?.name}
                 </a>
                 <FeatherIcon name="tag" size={16} className="text-gray-400" />
-              </div>
+              </div> */}
 
               {/* Title */}
               <h1 className="font-[tajawal] text-3xl font-bold text-gray-900 text-right leading-tight">
@@ -196,7 +561,7 @@ export default async function ProductPage({ params }) {
               {/* Price */}
               <div className="flex items-center justify-end gap-3">
                 <span className="font-[tajawal] text-2xl font-bold text-blue-600">
-                  {product.price?.toLocaleString()} ر.س
+                  ج.م {product.price?.toLocaleString()}
                 </span>
                 {product.in_stock ? (
                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-[tajawal] font-medium">
@@ -328,16 +693,7 @@ export default async function ProductPage({ params }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((relatedProduct) => (
-                <Card
-                  key={relatedProduct.id}
-                  title={relatedProduct.title}
-                  description={relatedProduct.description}
-                  price={relatedProduct.price}
-                  image={relatedProduct.thumbnail_url}
-                  isNew={relatedProduct.is_new}
-                  isHot={relatedProduct.is_hot}
-                  inStock={relatedProduct.in_stock}
-                />
+                <Card key={relatedProduct.id} product={relatedProduct} />
               ))}
             </div>
           </div>
