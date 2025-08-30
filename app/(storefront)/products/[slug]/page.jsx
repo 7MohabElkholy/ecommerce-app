@@ -336,6 +336,8 @@ export default function ProductPage({ params }) {
     currentIndex: 0,
   });
 
+  const [quantity, setQuantity] = React.useState(1); // Quantity state
+
   React.useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -368,6 +370,35 @@ export default function ProductPage({ params }) {
       isOpen: false,
       currentIndex: 0,
     });
+  };
+
+  // Quantity handlers
+  const handleDecrease = () => {
+    setQuantity((q) => Math.max(1, q - 1));
+  };
+
+  const handleIncrease = () => {
+    setQuantity((q) => Math.min(q + 1, product.quantity));
+  };
+
+  // Add to cart handler
+  const addToCart = () => {
+    if (!product) return;
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingIndex = cart.findIndex((item) => item.id === product.id);
+    if (existingIndex > -1) {
+      cart[existingIndex].quantity += quantity;
+    } else {
+      cart.push({
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        thumbnail_url: product.thumbnail_url,
+        quantity,
+      });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    // Optionally, show a success message or redirect to cart
   };
 
   const navigateGallery = (index) => {
@@ -591,24 +622,33 @@ export default function ProductPage({ params }) {
                     <div className="flex items-center justify-end gap-3">
                       {/* Quantity Selector */}
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                        <button className="p-2 text-gray-600 hover:bg-gray-100 transition-colors duration-200">
+                        <button
+                          className="p-2 text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+                          onClick={handleDecrease}
+                          disabled={quantity <= 1}
+                        >
                           <FeatherIcon name="minus" size={16} />
                         </button>
                         <span className="px-4 font-[tajawal] font-medium text-gray-800 min-w-[3rem] text-center">
-                          1
+                          {quantity}
                         </span>
-                        <button className="p-2 text-gray-600 hover:bg-gray-100 transition-colors duration-200">
+                        <button
+                          className="p-2 text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+                          onClick={handleIncrease}
+                        >
                           <FeatherIcon name="plus" size={16} />
                         </button>
                       </div>
-
                       <span className="font-[tajawal] text-sm text-gray-600">
                         الكمية
                       </span>
                     </div>
 
                     <div className="flex gap-3">
-                      <button className="flex-1 bg-blue-500 text-white py-3 px-6 rounded-lg font-[tajawal] font-medium hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center gap-2">
+                      <button
+                        onClick={addToCart}
+                        className="flex-1 bg-blue-500 text-white py-3 px-6 rounded-lg font-[tajawal] font-medium hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center gap-2"
+                      >
                         <FeatherIcon name="shopping-cart" size={18} />
                         أضف إلى السلة
                       </button>

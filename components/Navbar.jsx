@@ -9,7 +9,9 @@ function Navbar() {
     <nav className="flex items-center py-2 bg-white shadow-md px-4 sticky top-0 z-50">
       <div className="flex items-center  gap-4 flex-1">
         <FeatherIcon name="heart" size={24} color="#000000" />
-        <FeatherIcon name="shopping-cart" size={24} color="#000000" />
+        <Link href="/cart" className="flex items-center justify-center">
+          <FeatherIcon name="shopping-cart" size={24} color="#000000" />
+        </Link>
       </div>
 
       <ul className="flex flex-row-reverse gap-4 flex-1 justify-center">

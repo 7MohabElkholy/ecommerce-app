@@ -120,6 +120,7 @@ function ProductDialog({
     is_hot: false,
     is_new: false,
     slug: "",
+    quantity: 0,
   });
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
@@ -138,6 +139,7 @@ function ProductDialog({
         is_hot: product.is_hot || false,
         is_new: product.is_new || false,
         slug: product.slug || "",
+        quantity: product.quantity || 0,
       });
     } else {
       setFormData({
@@ -151,6 +153,7 @@ function ProductDialog({
         is_hot: false,
         is_new: false,
         slug: "",
+        quantity: 0,
       });
     }
     setErrors({});
@@ -325,6 +328,9 @@ function ProductDialog({
     if (!formData.category_id) {
       newErrors.category_id = "التصنيف مطلوب";
     }
+    if (!formData.quantity || parseInt(formData.quantity) < 0) {
+      newErrors.quantity = "الكمية يجب أن تكون صفر أو أكثر";
+    }
 
     if (!formData.slug.trim()) {
       newErrors.slug = "الرابط SEO مطلوب";
@@ -356,6 +362,7 @@ function ProductDialog({
         is_hot: formData.is_hot,
         is_new: formData.is_new,
         slug: formData.slug.trim(),
+        quantity: parseInt(formData.quantity),
       };
 
       if (product) {
@@ -465,11 +472,11 @@ function ProductDialog({
             {/* Price Field */}
             <div>
               <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right mb-2">
-                السعر (ر.س) *
+                السعر *
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="5"
                 min="0"
                 value={formData.price}
                 onChange={(e) => handleInputChange("price", e.target.value)}
@@ -485,8 +492,31 @@ function ProductDialog({
               )}
             </div>
 
-            {/* Category Field */}
+            {/* quianty Field */}
             <div>
+              <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right mb-2">
+                الكمية *
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={formData.quantity}
+                onChange={(e) => handleInputChange("quantity", e.target.value)}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-[tajawal] text-right transition-colors duration-200 ${
+                  errors.price ? "border-red-500" : "border-gray-200"
+                }`}
+                placeholder="0"
+              />
+              {errors.quantity && (
+                <p className="font-[tajawal] text-red-500 text-xs mt-1 text-right">
+                  {errors.quantity}
+                </p>
+              )}
+            </div>
+
+            {/* Category Field */}
+            <div className="md:col-span-2">
               <label className="font-[tajawal] text-sm font-medium text-gray-700 block text-right mb-2">
                 التصنيف *
               </label>

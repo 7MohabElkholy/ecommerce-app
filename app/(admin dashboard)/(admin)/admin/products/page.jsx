@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
 import { supabase } from "../../../../lib/supabaseClient";
-import ProductDialog from "@/components/ProductDialog"; // We'll create this next
+import ProductDialog from "@/components/ProductDialog";
 
 function ProductsTable() {
   const [products, setProducts] = useState([]);
@@ -182,6 +182,9 @@ function ProductsTable() {
                 الحالة
               </th>
               <th className="px-4 py-3 text-center font-[tajawal] font-medium text-gray-700 text-sm">
+                الكمية
+              </th>
+              <th className="px-4 py-3 text-center font-[tajawal] font-medium text-gray-700 text-sm">
                 المميزات
               </th>
               <th className="px-4 py-3 text-center font-[tajawal] font-medium text-gray-700 text-sm">
@@ -234,7 +237,7 @@ function ProductsTable() {
                 {/* Price */}
                 <td className="px-4 py-4 text-center">
                   <span className="font-[tajawal] font-bold text-blue-600 text-sm">
-                    {product.price ? `${product.price} ر.س` : "—"}
+                    {product.price ? `${product.price}` : "—"}
                   </span>
                 </td>
 
@@ -255,6 +258,13 @@ function ProductsTable() {
                     }`}
                   >
                     {product.in_stock ? "متوفر" : "نفذ"}
+                  </span>
+                </td>
+
+                {/* quiantyny */}
+                <td className="px-4 py-4 text-center">
+                  <span className="font-[tajawal] text-gray-600 text-sm">
+                    {product.quantity !== null ? product.quantity : "—"}
                   </span>
                 </td>
 
