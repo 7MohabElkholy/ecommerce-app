@@ -387,6 +387,10 @@ export default function ProductPage({ params }) {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existingIndex = cart.findIndex((item) => item.id === product.id);
     if (existingIndex > -1) {
+      if (cart[existingIndex].quantity + quantity > product.quantity) {
+        alert("الكمية المطلوبة تتجاوز الكمية المتوفرة في المخزون.");
+        return;
+      }
       cart[existingIndex].quantity += quantity;
     } else {
       cart.push({
@@ -395,6 +399,7 @@ export default function ProductPage({ params }) {
         price: product.price,
         thumbnail_url: product.thumbnail_url,
         quantity,
+        maxQuantity: product.quantity,
       });
     }
     localStorage.setItem("cart", JSON.stringify(cart));
@@ -649,7 +654,11 @@ export default function ProductPage({ params }) {
                         onClick={addToCart}
                         className="flex-1 bg-blue-500 text-white py-3 px-6 rounded-lg font-[tajawal] font-medium hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center gap-2"
                       >
-                        <FeatherIcon name="shopping-cart" size={18} />
+                        <FeatherIcon
+                          name="shopping-cart"
+                          size={18}
+                          className="flex items-center justify-center"
+                        />
                         أضف إلى السلة
                       </button>
                       <button className="p-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-red-500 transition-colors duration-200">

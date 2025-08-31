@@ -18,6 +18,14 @@ function CartPage() {
   const updateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
 
+    const cartItemMaxQuantity =
+      cart.find((item) => item.id === id)?.maxQuantity || 2;
+
+    if (newQuantity > cartItemMaxQuantity) {
+      alert("الكمية المطلوبة غير متوفرة في المخزون");
+      return;
+    }
+
     const updatedCart = cart.map((item) =>
       item.id === id ? { ...item, quantity: newQuantity } : item
     );
@@ -59,7 +67,7 @@ function CartPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row-reverse justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="text-right flex flex-col sm:flex-row-reverse justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="font-[tajawal] text-3xl font-bold text-gray-800 mb-2">
               سلة التسوق
@@ -74,7 +82,11 @@ function CartPage() {
               onClick={clearCart}
               className="flex items-center gap-2 text-red-500 hover:text-red-600 font-[tajawal] text-sm transition-colors duration-200"
             >
-              <FeatherIcon name="trash-2" size={16} />
+              <FeatherIcon
+                name="trash-2"
+                size={16}
+                className="flex items-center justify-center"
+              />
               إفراغ السلة
             </button>
           )}
@@ -86,7 +98,7 @@ function CartPage() {
             <FeatherIcon
               name="shopping-cart"
               size={64}
-              className="text-gray-300 mx-auto mb-4"
+              className="text-gray-300 mx-auto mb-4 flex items-center justify-center"
             />
             <h2 className="font-[tajawal] text-xl font-bold text-gray-800 mb-3">
               سلة التسوق فارغة
@@ -98,7 +110,11 @@ function CartPage() {
               onClick={() => router.push("/products")}
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-[tajawal] font-medium transition-colors duration-300 inline-flex items-center gap-2"
             >
-              <FeatherIcon name="arrow-left" size={16} />
+              <FeatherIcon
+                name="arrow-left"
+                size={16}
+                className="flex items-center justify-center"
+              />
               تصفح المنتجات
             </button>
           </div>
@@ -125,10 +141,10 @@ function CartPage() {
                       {/* Product Info */}
                       <div className="flex-1 text-right">
                         <h3 className="font-[tajawal] font-semibold text-gray-800 text-sm mb-1">
-                          {item.title}
+                          اسم المنتج: {item.title}
                         </h3>
                         <p className="font-[tajawal] text-blue-600 font-bold text-sm mb-2">
-                          {item.price?.toLocaleString()} ر.س
+                          سعر المنتج: {item.price?.toLocaleString()} ج.م
                         </p>
 
                         {/* Quantity Controls */}
@@ -163,9 +179,9 @@ function CartPage() {
 
                       {/* Total Price & Remove */}
                       <div className="flex flex-col items-end gap-2">
-                        <p className="font-[tajawal] font-bold text-gray-800">
+                        {/* <p className="font-[tajawal] font-bold text-gray-800">
                           {(item.price * item.quantity)?.toLocaleString()} ر.س
-                        </p>
+                        </p> */}
                         <button
                           onClick={() => removeItem(item.id)}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
@@ -184,7 +200,7 @@ function CartPage() {
                       عدد المنتجات: {cart.length}
                     </span>
                     <span className="font-[tajawal] font-bold text-gray-800">
-                      المجموع: {getSubtotal()?.toLocaleString()} ر.س
+                      المجموع: {getSubtotal()?.toLocaleString()} ج.م
                     </span>
                   </div>
                 </div>
@@ -205,25 +221,25 @@ function CartPage() {
                       المجموع
                     </span>
                     <span className="font-[tajawal] text-gray-800">
-                      {getSubtotal()?.toLocaleString()} ر.س
+                      {getSubtotal()?.toLocaleString()} ج.م
                     </span>
                   </div>
 
                   {/* Shipping */}
-                  <div className="flex justify-between items-center">
+                  {/* <div className="flex justify-between items-center">
                     <span className="font-[tajawal] text-gray-600">الشحن</span>
                     <span className="font-[tajawal] text-gray-800">
                       {getSubtotal() > 0 ? "15.00 ر.س" : "مجاني"}
                     </span>
-                  </div>
+                  </div> */}
 
                   {/* Discount */}
-                  <div className="flex justify-between items-center">
+                  {/* <div className="flex justify-between items-center">
                     <span className="font-[tajawal] text-gray-600">الخصم</span>
                     <span className="font-[tajawal] text-green-600">
                       0.00 ر.س
                     </span>
-                  </div>
+                  </div> */}
 
                   {/* Divider */}
                   <div className="border-t border-gray-200 my-4"></div>
@@ -234,7 +250,7 @@ function CartPage() {
                       الإجمالي
                     </span>
                     <span className="font-[tajawal] font-bold text-blue-600 text-lg">
-                      {getTotal()?.toLocaleString()} ر.س
+                      {getTotal()?.toLocaleString()} ج.م
                     </span>
                   </div>
 
@@ -243,7 +259,11 @@ function CartPage() {
                     onClick={() => router.push("/checkout")}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg font-[tajawal] font-medium transition-colors duration-200 flex items-center justify-center gap-2 mt-6"
                   >
-                    <FeatherIcon name="credit-card" size={18} />
+                    <FeatherIcon
+                      name="dollar-sign"
+                      size={18}
+                      className="flex items-center justify-center"
+                    />
                     اتمام الشراء
                   </button>
 
@@ -252,21 +272,35 @@ function CartPage() {
                     onClick={() => router.push("/products")}
                     className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-[tajawal] font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-2"
                   >
-                    <FeatherIcon name="arrow-left" size={16} />
+                    <FeatherIcon
+                      name="arrow-left"
+                      size={16}
+                      className="flex items-center justify-center"
+                    />
                     مواصلة التسوق
                   </button>
                 </div>
 
                 {/* Security Badge */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-around flex-wrap gap-2 mt-6 pt-6 border-t border-gray-200">
                   <div className="flex items-center justify-center gap-2 text-gray-600">
                     <FeatherIcon
-                      name="shield"
+                      name="package"
                       size={16}
-                      className="text-green-500"
+                      className="text-green-500 flex items-center justify-center"
                     />
                     <span className="font-[tajawal] text-xs">
-                      عملية دفع آمنة ومشفرة
+                      الدفع عند الإستلام
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-gray-600">
+                    <FeatherIcon
+                      name="send"
+                      size={16}
+                      className="text-green-500 flex items-center justify-center"
+                    />
+                    <span className="font-[tajawal] text-xs">
+                      التواصل على الواتساب
                     </span>
                   </div>
                 </div>
