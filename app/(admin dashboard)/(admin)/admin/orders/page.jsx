@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
-// import { supabase } from "../../lib/supabaseClient";
+import React, { useState, useEffect, useMemo } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
 import { supabase } from "@/app/lib/supabaseClient";
-function OrdersDashboard() {
+
+export default function OrdersDashboard() {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +14,14 @@ function OrdersDashboard() {
     key: null,
     direction: "ascending",
   });
+  const [statusCounts, setStatusCounts] = useState({});
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // small state so "View" button doesn't break if used elsewhere
+  const [editingOrder, setEditingOrder] = useState(null);
 
   const statusOptions = [
     { value: "all", label: "جميع الطلبات", color: "gray" },
@@ -34,99 +42,129 @@ function OrdersDashboard() {
     red: "bg-red-500",
   };
 
+  const fetchStatusCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("orders_status_counts") // the view
+        .select("*");
+      if (error) throw error;
+
+      // data example: [{ status: 'new', count: '12' }, ...]
+      const counts = (data || []).reduce((acc, row) => {
+        acc[row.status] = Number(row.count);
+        return acc;
+      }, {});
+      setStatusCounts(counts);
+    } catch (err) {
+      console.error("fetchStatusCounts error:", err);
+      setStatusCounts({});
+    }
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
-    let query = supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      let query = supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (filterStatus !== "all") {
-      query = query.eq("status", filterStatus);
-    }
+      if (filterStatus !== "all") query = query.eq("status", filterStatus);
 
-    const { data, error } = await query;
+      const { data, error } = await query;
+      if (error) throw error;
 
-    if (error) {
-      console.error("Error fetching orders:", error);
-      setOrders([]);
-      setFilteredOrders([]);
-    } else {
       setOrders(data || []);
       setFilteredOrders(data || []);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setOrders([]);
+      setFilteredOrders([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(); // fetch paginated/filtered rows for the table
+    fetchStatusCounts(); // fetch summary counts for quick stats
   }, [filterStatus]);
 
-  // Search functionality
+  // Search
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredOrders(orders);
     } else {
       const filtered = orders.filter(
         (order) =>
-          order.order_number?.toString().includes(searchTerm) ||
-          order.customer_name
-            ?.toLowerCase()
+          (order.order_number?.toString() || "").includes(searchTerm) ||
+          (order.customer_name || "")
+            .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          order.customer_phone?.includes(searchTerm) ||
-          order.customer_city?.toLowerCase().includes(searchTerm.toLowerCase())
+          (order.customer_phone || "").includes(searchTerm) ||
+          (order.customer_city || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
       );
       setFilteredOrders(filtered);
     }
   }, [searchTerm, orders]);
 
-  // Sorting functionality
+  // Reset page to 1 when filteredOrders changes (new search/filter/sort)
+  useEffect(() => {
+    setCurrentPage(1);
+
+    // also remove any selected ids that no longer exist in the dataset
+    setSelectedOrders((prev) =>
+      prev.filter((id) => orders.some((o) => o.id === id))
+    );
+  }, [filteredOrders, orders]);
+
+  // Sorting (applies to filteredOrders)
   const handleSort = (key) => {
     let direction = "ascending";
-    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+    if (sortConfig.key === key && sortConfig.direction === "ascending")
       direction = "descending";
-    }
 
-    const sortedOrders = [...filteredOrders].sort((a, b) => {
-      if (a[key] < b[key]) {
-        return direction === "ascending" ? -1 : 1;
-      }
-      if (a[key] > b[key]) {
-        return direction === "ascending" ? 1 : -1;
-      }
+    const sorted = [...filteredOrders].sort((a, b) => {
+      // guard for undefined
+      const av = a?.[key] ?? "";
+      const bv = b?.[key] ?? "";
+
+      if (av < bv) return direction === "ascending" ? -1 : 1;
+      if (av > bv) return direction === "ascending" ? 1 : -1;
       return 0;
     });
 
-    setFilteredOrders(sortedOrders);
+    setFilteredOrders(sorted);
     setSortConfig({ key, direction });
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const updateData = { status: newStatus };
-
-      if (newStatus === "delivered") {
+      if (newStatus === "delivered")
         updateData.completed_at = new Date().toISOString();
-      }
 
       const { error } = await supabase
         .from("orders")
         .update(updateData)
         .eq("id", orderId);
-
       if (error) throw error;
 
-      // Refresh orders
-      fetchOrders();
-    } catch (error) {
-      console.error("Error updating order status:", error);
+      // refresh visible rows (your existing approach)
+      await fetchOrders();
+
+      // <-- crucial: refresh counts
+      await fetchStatusCounts();
+    } catch (err) {
+      console.error("Error updating order status:", err);
       alert("حدث خطأ أثناء تحديث حالة الطلب");
     }
   };
 
   const bulkUpdateStatus = async (newStatus) => {
     if (selectedOrders.length === 0) return;
-
     try {
       const { error } = await supabase
         .from("orders")
@@ -137,11 +175,10 @@ function OrdersDashboard() {
           }),
         })
         .in("id", selectedOrders);
-
       if (error) throw error;
-
       setSelectedOrders([]);
-      fetchOrders();
+      await fetchOrders();
+      await fetchStatusCounts();
     } catch (error) {
       console.error("Error bulk updating orders:", error);
       alert("حدث خطأ أثناء تحديث الطلبات");
@@ -156,12 +193,21 @@ function OrdersDashboard() {
     );
   };
 
+  // Toggle select all visible (current page) orders
   const toggleSelectAll = () => {
-    setSelectedOrders((prev) =>
-      prev.length === filteredOrders.length
-        ? []
-        : filteredOrders.map((order) => order.id)
+    const visibleIds = paginatedOrders.map((o) => o.id);
+    const allVisibleSelected = visibleIds.every((id) =>
+      selectedOrders.includes(id)
     );
+    if (allVisibleSelected) {
+      setSelectedOrders((prev) =>
+        prev.filter((id) => !visibleIds.includes(id))
+      );
+    } else {
+      setSelectedOrders((prev) =>
+        Array.from(new Set([...prev, ...visibleIds]))
+      );
+    }
   };
 
   const getStatusColor = (status) => {
@@ -172,6 +218,19 @@ function OrdersDashboard() {
   const getStatusLabel = (status) => {
     const statusObj = statusOptions.find((opt) => opt.value === status);
     return statusObj?.label || status;
+  };
+
+  // Pagination derived values
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, currentPage, pageSize]);
+
+  const goToPage = (n) => {
+    const page = Math.max(1, Math.min(n, totalPages));
+    setCurrentPage(page);
   };
 
   if (loading) {
@@ -198,27 +257,21 @@ function OrdersDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {statusOptions.slice(1).map((status, idx, arr) => {
           const total = arr.length;
-          const cols = 4; // md:grid-cols-4
+          const cols = 4;
           const lastRowCount = total % cols === 0 ? cols : total % cols;
           const firstIndexOfLastRow = total - lastRowCount;
 
           let extraClasses = "";
-
           if (idx >= firstIndexOfLastRow) {
-            // item is in the last row
-            if (lastRowCount === 3) {
+            if (lastRowCount === 3)
               extraClasses =
                 idx === firstIndexOfLastRow ? "md:col-start-2" : "";
-            }
-            if (lastRowCount === 2) {
+            if (lastRowCount === 2)
               extraClasses =
                 idx === firstIndexOfLastRow
                   ? "md:col-start-3"
                   : "md:col-start-4";
-            }
-            if (lastRowCount === 1) {
-              extraClasses = "md:col-start-4";
-            }
+            if (lastRowCount === 1) extraClasses = "md:col-start-4";
           }
 
           return (
@@ -232,7 +285,7 @@ function OrdersDashboard() {
                 } rounded-full mx-auto mb-2`}
               />
               <p className="font-[tajawal] text-2xl font-bold text-gray-800">
-                {orders.filter((o) => o.status === status.value).length}
+                {statusCounts[status.value] || 0}
               </p>
               <p className="font-[tajawal] text-sm text-gray-600">
                 {status.label}
@@ -321,8 +374,10 @@ function OrdersDashboard() {
                   <input
                     type="checkbox"
                     checked={
-                      selectedOrders.length === filteredOrders.length &&
-                      filteredOrders.length > 0
+                      paginatedOrders.length > 0 &&
+                      paginatedOrders.every((o) =>
+                        selectedOrders.includes(o.id)
+                      )
                     }
                     onChange={toggleSelectAll}
                     className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
@@ -332,8 +387,8 @@ function OrdersDashboard() {
                   className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm cursor-pointer"
                   onClick={() => handleSort("order_number")}
                 >
-                  <div className="flex items-center justify-end gap-1">
-                    رقم الطلب
+                  رقم الطلب
+                  <div className="flex items-center justify-end gap-1 inline-block">
                     <FeatherIcon
                       name={
                         sortConfig.key === "order_number"
@@ -347,12 +402,13 @@ function OrdersDashboard() {
                     />
                   </div>
                 </th>
+
                 <th
                   className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm cursor-pointer"
                   onClick={() => handleSort("customer_name")}
                 >
-                  <div className="flex items-center justify-end gap-1">
-                    العميل
+                  العميل
+                  <div className="flex items-center justify-end gap-1 inline-block">
                     <FeatherIcon
                       name={
                         sortConfig.key === "customer_name"
@@ -366,15 +422,17 @@ function OrdersDashboard() {
                     />
                   </div>
                 </th>
+
                 <th className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm">
                   المنتجات
                 </th>
+
                 <th
                   className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm cursor-pointer"
                   onClick={() => handleSort("total_amount")}
                 >
-                  <div className="flex items-center justify-end gap-1">
-                    المبلغ
+                  المبلغ
+                  <div className="flex items-center justify-end gap-1 inline-block">
                     <FeatherIcon
                       name={
                         sortConfig.key === "total_amount"
@@ -388,15 +446,17 @@ function OrdersDashboard() {
                     />
                   </div>
                 </th>
+
                 <th className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm">
                   الحالة
                 </th>
+
                 <th
                   className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm cursor-pointer"
                   onClick={() => handleSort("created_at")}
                 >
-                  <div className="flex items-center justify-end gap-1">
-                    التاريخ
+                  التاريخ
+                  <div className="flex items-center justify-end gap-1 inline-block">
                     <FeatherIcon
                       name={
                         sortConfig.key === "created_at"
@@ -410,6 +470,7 @@ function OrdersDashboard() {
                     />
                   </div>
                 </th>
+
                 <th className="px-6 py-4 text-right font-[tajawal] font-medium text-gray-700 text-sm">
                   الإجراءات
                 </th>
@@ -417,12 +478,11 @@ function OrdersDashboard() {
             </thead>
 
             <tbody>
-              {filteredOrders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <tr
                   key={order.id}
                   className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200"
                 >
-                  {/* Checkbox */}
                   <td className="px-6 py-4">
                     <input
                       type="checkbox"
@@ -432,14 +492,12 @@ function OrdersDashboard() {
                     />
                   </td>
 
-                  {/* Order Number */}
                   <td className="px-6 py-4">
                     <span className="font-[tajawal] font-medium text-blue-600 text-sm">
                       #{order.order_number}
                     </span>
                   </td>
 
-                  {/* Customer Info */}
                   <td className="px-6 py-4">
                     <div className="text-right">
                       <p className="font-[tajawal] font-medium text-gray-800 text-sm">
@@ -454,7 +512,6 @@ function OrdersDashboard() {
                     </div>
                   </td>
 
-                  {/* Products */}
                   <td className="px-6 py-4">
                     <div className="text-right">
                       <p className="font-[tajawal] text-gray-800 text-sm">
@@ -468,52 +525,43 @@ function OrdersDashboard() {
                     </div>
                   </td>
 
-                  {/* Amount */}
                   <td className="px-6 py-4">
                     <span className="font-[tajawal] font-bold text-gray-800">
                       {order.total_amount?.toLocaleString()} ر.س
                     </span>
                   </td>
 
-                  {/* Status */}
                   <td className="px-6 py-4">
                     <select
                       value={order.status}
                       onChange={(e) =>
                         updateOrderStatus(order.id, e.target.value)
                       }
-                      className={`px-3 py-1 rounded-full text-xs font-[tajawal] font-medium border-none outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-                        ${
-                          order.status === "new"
-                            ? "bg-blue-100 text-blue-700"
-                            : ""
-                        }
-                        ${
-                          order.status === "confirmed"
-                            ? "bg-green-100 text-green-700"
-                            : ""
-                        }
-                        ${
-                          order.status === "preparing"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : ""
-                        }
-                        ${
-                          order.status === "shipped"
-                            ? "bg-purple-100 text-purple-700"
-                            : ""
-                        }
-                        ${
-                          order.status === "delivered"
-                            ? "bg-green-100 text-green-700"
-                            : ""
-                        }
-                        ${
-                          order.status === "cancelled"
-                            ? "bg-red-100 text-red-700"
-                            : ""
-                        }
-                      `}
+                      className={`px-3 py-1 rounded-full text-xs font-[tajawal] font-medium border-none outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                        order.status === "new"
+                          ? "bg-blue-100 text-blue-700"
+                          : ""
+                      } ${
+                        order.status === "confirmed"
+                          ? "bg-green-100 text-green-700"
+                          : ""
+                      } ${
+                        order.status === "preparing"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : ""
+                      } ${
+                        order.status === "shipped"
+                          ? "bg-purple-100 text-purple-700"
+                          : ""
+                      } ${
+                        order.status === "delivered"
+                          ? "bg-green-100 text-green-700"
+                          : ""
+                      } ${
+                        order.status === "cancelled"
+                          ? "bg-red-100 text-red-700"
+                          : ""
+                      }`}
                     >
                       {statusOptions.slice(1).map((status) => (
                         <option key={status.value} value={status.value}>
@@ -523,14 +571,12 @@ function OrdersDashboard() {
                     </select>
                   </td>
 
-                  {/* Date */}
                   <td className="px-6 py-4">
                     <span className="font-[tajawal] text-gray-600 text-sm">
                       {new Date(order.created_at).toLocaleDateString("ar-EG")}
                     </span>
                   </td>
 
-                  {/* Actions */}
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -568,7 +614,7 @@ function OrdersDashboard() {
               {filterStatus !== "all"
                 ? `بحالة ${getStatusLabel(filterStatus)}`
                 : "حاليا"}
-              {searchTerm && ` تطابق بحثك: "${searchTerm}"`}
+              {searchTerm && ` تطابق بحثك: \"${searchTerm}\"`}
             </p>
             {searchTerm && (
               <button
@@ -585,28 +631,98 @@ function OrdersDashboard() {
         {filteredOrders.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 border-t border-gray-200">
             <div className="font-[tajawal] text-sm text-gray-600">
-              عرض {filteredOrders.length} من {orders.length} طلب
+              عرض {paginatedOrders.length} من {filteredOrders.length} نتائج —
+              إجمالي الطلبات: {orders.length}
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200"
+              >
                 السابق
               </button>
-              <button className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
-                1
-              </button>
-              <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200">
-                2
-              </button>
-              <button className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200">
+
+              {/* Page numbers (show a compact window) */}
+              {(() => {
+                const pages = [];
+                const maxButtons = 7; // including first/last if needed
+                const half = Math.floor(maxButtons / 2);
+                let start = Math.max(1, currentPage - half);
+                let end = Math.min(totalPages, currentPage + half);
+
+                if (end - start + 1 < maxButtons) {
+                  start = Math.max(1, end - (maxButtons - 1));
+                  end = Math.min(totalPages, start + (maxButtons - 1));
+                }
+
+                for (let p = start; p <= end; p++) {
+                  pages.push(
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      className={`px-3 py-2 rounded-lg ${
+                        p === currentPage
+                          ? "bg-blue-500 text-white"
+                          : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                      } transition-colors duration-200`}
+                    >
+                      {p}
+                    </button>
+                  );
+                }
+
+                return pages;
+              })()}
+
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors duration-200"
+              >
                 التالي
               </button>
+
+              {/* Page size selector */}
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600"
+              >
+                {[5, 10, 20, 50].map((s) => (
+                  <option key={s} value={s}>
+                    {s} / صفحة
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}
       </div>
+
+      {/* Simple modal-like viewer for editingOrder (optional) */}
+      {editingOrder && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-[tajawal] font-bold">
+                تفاصيل الطلب #{editingOrder.order_number}
+              </h3>
+              <button
+                onClick={() => setEditingOrder(null)}
+                className="text-gray-500"
+              >
+                إغلاق
+              </button>
+            </div>
+
+            <pre className="text-xs text-right overflow-auto font-[tajawal]">
+              {JSON.stringify(editingOrder, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-export default OrdersDashboard;

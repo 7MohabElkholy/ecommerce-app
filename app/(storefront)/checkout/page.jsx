@@ -105,7 +105,7 @@ function CheckoutPage() {
         customer_city: formData.city,
         customer_notes: formData.notes,
         payment_method: formData.paymentMethod,
-        status: "pending",
+        status: "new",
         total_amount: getTotal(),
         subtotal: getSubtotal(),
         shipping_fee: 15,
