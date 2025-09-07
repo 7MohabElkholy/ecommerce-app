@@ -22,6 +22,7 @@ export default function OrdersDashboard() {
 
   // small state so "View" button doesn't break if used elsewhere
   const [editingOrder, setEditingOrder] = useState(null);
+  const [queue, setQueue] = useState([]);
 
   const statusOptions = [
     { value: "all", label: "جميع الطلبات", color: "gray" },
@@ -233,6 +234,32 @@ export default function OrdersDashboard() {
     setCurrentPage(page);
   };
 
+  // Add a message to the queue
+  const addToQueue = (order, status) => {
+    const msg = `Hello ${order.customer_name}, your order #${order.number} is now: ${status}.`;
+    const newItem = {
+      id: Date.now(),
+      phone: order.customer_phone,
+      message: msg,
+      sent: false,
+    };
+    setQueue((prev) => [...prev, newItem]);
+  };
+
+  // Send the next message
+  const sendNext = () => {
+    const next = queue.find((item) => !item.sent);
+    if (!next) return alert("No pending messages");
+
+    const url = `https://wa.me/${next.phone}?text=${encodeURIComponent(
+      next.message
+    )}`;
+    window.open(url, "whatsapp"); // reuses the same WhatsApp tab
+    setQueue((prev) =>
+      prev.map((item) => (item.id === next.id ? { ...item, sent: true } : item))
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -333,6 +360,32 @@ export default function OrdersDashboard() {
               <label className="font-[tajawal] text-sm font-medium text-gray-700">
                 :التصفية حسب
               </label>
+            </div>
+
+            <div className="p-4 border rounded-lg shadow">
+              <h2 className="text-lg font-bold mb-2">WhatsApp Queue</h2>
+              <ul className="space-y-2">
+                {queue.map((item) => (
+                  <li
+                    key={item.id}
+                    className={`p-2 rounded ${
+                      item.sent ? "bg-green-100" : "bg-yellow-100"
+                    }`}
+                  >
+                    <strong>{item.phone}</strong> — {item.message.slice(0, 40)}
+                    ...
+                    <span className="ml-2 text-sm">
+                      {item.sent ? "✅ Sent" : "⏳ Pending"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={sendNext}
+                className="mt-3 px-4 py-2 bg-blue-500 text-white rounded"
+              >
+                Send Next
+              </button>
             </div>
 
             {/* Bulk Actions */}
@@ -587,7 +640,7 @@ export default function OrdersDashboard() {
                       </button>
                       <button
                         onClick={() =>
-                          window.open(`tel:${order.customer_phone}`)
+                          addToQueue(order, getStatusLabel(order.status))
                         }
                         className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors duration-200"
                       >
