@@ -5,6 +5,14 @@ import Image from "next/image";
 import placeholder from "@/public/placeholder.jpg";
 import { supabase } from "@/app/lib/supabaseClient";
 
+/**
+ * The home page for the storefront.
+ *
+ * This component displays the main landing page, including a hero section,
+ * a list of featured products, and a promotional section.
+ *
+ * @returns {Promise<React.ReactElement>} A promise that resolves to the home page component.
+ */
 export default async function Home() {
   const { data: products, error } = await supabase
     .from("products")

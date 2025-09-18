@@ -5,6 +5,14 @@ import FilterButton from "@/components/FilterButton";
 import SearchBar from "@/components/SearchBar";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
+/**
+ * The products page.
+ *
+ * This component displays a list of all products, with options to filter and
+ * search for specific products.
+ *
+ * @returns {React.ReactElement} The products page component.
+ */
 function ProductsPage() {
   const supabase = createClientComponentClient();
 
@@ -26,6 +34,11 @@ function ProductsPage() {
     "الكل",
   ];
 
+  /**
+   * Handles clicks on the filter buttons.
+   *
+   * @param {string} filterName - The name of the filter that was clicked.
+   */
   const handleFilterClick = (filterName) => {
     if (filterName === "مخصص") {
       setShowCategoryOverlay(true);
@@ -36,6 +49,11 @@ function ProductsPage() {
     setSelectedCategories([]); // Reset category selection when other filters are chosen
   };
 
+  /**
+   * Handles the search input.
+   *
+   * @param {string} query - The search query.
+   */
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
@@ -111,7 +129,11 @@ function ProductsPage() {
     setFilteredProducts(filtered);
   }, [activeFilter, searchQuery, products, selectedCategories]);
 
-  // Toggle category selection
+  /**
+   * Toggles the selection of a category.
+   *
+   * @param {number} categoryId - The ID of the category to toggle.
+   */
   const toggleCategory = (categoryId) => {
     if (selectedCategories.includes(categoryId)) {
       setSelectedCategories(
@@ -122,13 +144,17 @@ function ProductsPage() {
     }
   };
 
-  // Apply category filter and close overlay
+  /**
+   * Applies the selected category filter and closes the overlay.
+   */
   const applyCategoryFilter = () => {
     setActiveFilter("مخصص");
     setShowCategoryOverlay(false);
   };
 
-  // Clear all selected categories
+  /**
+   * Clears all selected categories.
+   */
   const clearCategories = () => {
     setSelectedCategories([]);
     setActiveFilter("الكل");

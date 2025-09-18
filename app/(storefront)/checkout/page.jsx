@@ -4,6 +4,15 @@ import FeatherIcon from "@/components/FeatherIcon";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
+/**
+ * The checkout page.
+ *
+ * This component provides a form for users to enter their shipping and payment
+ * information to complete their order. It also displays a summary of the order
+ * and handles order submission.
+ *
+ * @returns {React.ReactElement} The checkout page component.
+ */
 function CheckoutPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,16 +39,31 @@ function CheckoutPage() {
     setCart(cartData);
   }, []);
 
+  /**
+   * Calculates the subtotal of all items in the cart.
+   *
+   * @returns {number} The subtotal of the cart.
+   */
   const getSubtotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
+  /**
+   * Calculates the total price of the order, including shipping.
+   *
+   * @returns {number} The total price of the order.
+   */
   const getTotal = () => {
     const subtotal = getSubtotal();
     const shipping = subtotal > 0 ? 15 : 0;
     return subtotal + shipping;
   };
 
+  /**
+   * Validates the checkout form.
+   *
+   * @returns {boolean} True if the form is valid, false otherwise.
+   */
   const validateForm = () => {
     const newErrors = {};
 
@@ -69,6 +93,12 @@ function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Handles changes to the form inputs.
+   *
+   * @param {string} field - The name of the form field.
+   * @param {string} value - The new value of the form field.
+   */
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -76,6 +106,11 @@ function CheckoutPage() {
     }
   };
 
+  /**
+   * Generates a unique order number.
+   *
+   * @returns {string} A unique order number.
+   */
   const generateOrderNumber = () => {
     return `ORD-${Date.now()}-${Math.random()
       .toString(36)
@@ -83,6 +118,11 @@ function CheckoutPage() {
       .toUpperCase()}`;
   };
 
+  /**
+   * Handles the checkout form submission.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 

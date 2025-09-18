@@ -1,7 +1,11 @@
-// lib/supabaseClient.js
 import { createBrowserSupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-export const supabase = createBrowserSupabaseClient(supabaseUrl, supabaseKey);
+/**
+ * Creates a Supabase client for use in the browser.
+ *
+ * This client is safe to use in a browser environment and relies on the anonymous
+ * public key for authentication.
+ *
+ * @returns {import('@supabase/supabase-js').SupabaseClient} A Supabase client instance.
+ */
+export const supabase = createBrowserSupabaseClient();
