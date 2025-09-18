@@ -4,7 +4,16 @@ import FeatherIcon from "@/components/FeatherIcon";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Card from "@/components/Card";
 
-// Gallery Modal Component
+/**
+ * A modal component for displaying a gallery of images.
+ *
+ * @param {object} props - The properties for the component.
+ * @param {string[]} props.images - An array of image URLs.
+ * @param {number} props.currentIndex - The index of the currently displayed image.
+ * @param {Function} props.onClose - A function to close the modal.
+ * @param {Function} props.onNavigate - A function to navigate between images.
+ * @returns {React.ReactElement} The gallery modal component.
+ */
 function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -27,6 +36,11 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     };
   }, []);
 
+  /**
+   * Handles clicks on the image.
+   *
+   * @param {React.MouseEvent<HTMLImageElement>} e - The mouse event.
+   */
   const handleImageClick = (e) => {
     // Reset zoom on double click
     if (e.detail === 2) {
@@ -35,6 +49,11 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Handles the mouse wheel event for zooming.
+   *
+   * @param {React.WheelEvent<HTMLDivElement>} e - The wheel event.
+   */
   const handleWheel = (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.2 : 0.2;
@@ -58,6 +77,11 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Handles the mouse down event for dragging.
+   *
+   * @param {React.MouseEvent<HTMLDivElement>} e - The mouse event.
+   */
   const handleMouseDown = (e) => {
     if (zoomLevel > 1) {
       e.preventDefault(); // Prevent text selection
@@ -74,6 +98,11 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Handles the mouse move event for dragging.
+   *
+   * @param {React.MouseEvent<HTMLDivElement>} e - The mouse event.
+   */
   const handleMouseMove = (e) => {
     if (isDragging && zoomLevel > 1) {
       e.preventDefault(); // Prevent text selection
@@ -84,6 +113,9 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Handles the mouse up event for dragging.
+   */
   const handleMouseUp = () => {
     setIsDragging(false);
 
@@ -93,6 +125,9 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Handles zooming in.
+   */
   const handleZoomIn = () => {
     const newZoomLevel = Math.min(5, zoomLevel + 0.5);
     setZoomLevel(newZoomLevel);
@@ -103,6 +138,9 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Handles zooming out.
+   */
   const handleZoomOut = () => {
     const newZoomLevel = Math.max(0.5, zoomLevel - 0.5);
     setZoomLevel(newZoomLevel);
@@ -113,6 +151,9 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
     }
   };
 
+  /**
+   * Resets the zoom level and position.
+   */
   const resetZoom = () => {
     setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
@@ -278,8 +319,12 @@ function GalleryModal({ images, currentIndex, onClose, onNavigate }) {
   );
 }
 
-// ... (rest of the code remains exactly the same)
-
+/**
+ * Fetches a product from the database by its slug.
+ *
+ * @param {string} slug - The slug of the product to fetch.
+ * @returns {Promise<object|null>} A promise that resolves to the product object, or null if not found.
+ */
 async function getProduct(slug) {
   const supabase = createClientComponentClient();
 
@@ -302,6 +347,13 @@ async function getProduct(slug) {
   return product;
 }
 
+/**
+ * Fetches related products from the database.
+ *
+ * @param {number} categoryId - The ID of the category to fetch related products from.
+ * @param {number} currentProductId - The ID of the current product to exclude from the results.
+ * @returns {Promise<object[]>} A promise that resolves to an array of related products.
+ */
 async function getRelatedProducts(categoryId, currentProductId) {
   const supabase = createClientComponentClient();
 
@@ -326,6 +378,17 @@ async function getRelatedProducts(categoryId, currentProductId) {
   return relatedProducts;
 }
 
+/**
+ * The product details page.
+ *
+ * This component displays the details of a single product, including its images,
+ * price, description, and related products.
+ *
+ * @param {object} props - The properties for the component.
+ * @param {object} props.params - The route parameters.
+ * @param {string} props.params.slug - The slug of the product to display.
+ * @returns {React.ReactElement} The product page component.
+ */
 export default function ProductPage({ params }) {
   const { slug } = params;
   const [product, setProduct] = React.useState(null);
@@ -358,6 +421,11 @@ export default function ProductPage({ params }) {
     fetchData();
   }, [slug]);
 
+  /**
+   * Opens the gallery modal.
+   *
+   * @param {number} [index=0] - The index of the image to display initially.
+   */
   const openGalleryModal = (index = 0) => {
     setGalleryModal({
       isOpen: true,
@@ -365,6 +433,9 @@ export default function ProductPage({ params }) {
     });
   };
 
+  /**
+   * Closes the gallery modal.
+   */
   const closeGalleryModal = () => {
     setGalleryModal({
       isOpen: false,
@@ -372,16 +443,23 @@ export default function ProductPage({ params }) {
     });
   };
 
-  // Quantity handlers
+  /**
+   * Decreases the quantity of the product to be added to the cart.
+   */
   const handleDecrease = () => {
     setQuantity((q) => Math.max(1, q - 1));
   };
 
+  /**
+   * Increases the quantity of the product to be added to the cart.
+   */
   const handleIncrease = () => {
     setQuantity((q) => Math.min(q + 1, product.quantity));
   };
 
-  // Add to cart handler
+  /**
+   * Adds the product to the cart.
+   */
   const addToCart = () => {
     if (!product) return;
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -406,6 +484,11 @@ export default function ProductPage({ params }) {
     // Optionally, show a success message or redirect to cart
   };
 
+  /**
+   * Navigates to a specific image in the gallery.
+   *
+   * @param {number} index - The index of the image to navigate to.
+   */
   const navigateGallery = (index) => {
     setGalleryModal((prev) => ({
       ...prev,

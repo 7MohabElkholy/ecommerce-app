@@ -3,6 +3,14 @@ import React, { useState, useEffect } from "react";
 import FeatherIcon from "@/components/FeatherIcon";
 import { useRouter } from "next/navigation";
 
+/**
+ * The shopping cart page.
+ *
+ * This component displays the items in the user's shopping cart, allowing them
+ * to update quantities, remove items, and proceed to checkout.
+ *
+ * @returns {React.ReactElement} The cart page component.
+ */
 function CartPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +23,12 @@ function CartPage() {
     setLoading(false);
   }, []);
 
+  /**
+   * Updates the quantity of an item in the cart.
+   *
+   * @param {number} id - The ID of the item to update.
+   * @param {number} newQuantity - The new quantity for the item.
+   */
   const updateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
 
@@ -34,21 +48,39 @@ function CartPage() {
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
+  /**
+   * Removes an item from the cart.
+   *
+   * @param {number} id - The ID of the item to remove.
+   */
   const removeItem = (id) => {
     const updatedCart = cart.filter((item) => item.id !== id);
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
+  /**
+   * Clears all items from the cart.
+   */
   const clearCart = () => {
     setCart([]);
     localStorage.setItem("cart", "[]");
   };
 
+  /**
+   * Calculates the subtotal of all items in the cart.
+   *
+   * @returns {number} The subtotal of the cart.
+   */
   const getSubtotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
+  /**
+   * Calculates the total price of the order, including shipping.
+   *
+   * @returns {number} The total price of the order.
+   */
   const getTotal = () => {
     const subtotal = getSubtotal();
     const shipping = subtotal > 0 ? 15 : 0; // Free shipping over certain amount?

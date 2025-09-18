@@ -4,6 +4,14 @@ import { supabase } from "../../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import FeatherIcon from "@/components/FeatherIcon";
 
+/**
+ * The login page for administrators.
+ *
+ * This component provides a form for administrators to log in to the dashboard.
+ * It handles user input, authentication with Supabase, and error messages.
+ *
+ * @returns {React.ReactElement} The admin login page component.
+ */
 function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -11,6 +19,11 @@ function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false); // Add loading state
 
+  /**
+   * Handles the login form submission.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true); // Start loading
