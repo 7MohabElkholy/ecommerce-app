@@ -30,8 +30,8 @@ function Navbar() {
       </ul>
 
       <div className="flex items-center justify-end gap-2 flex-1">
-        <p className="font-[tajawal] font-bold">متجر الكتروني</p>
-        <Image alt="the logo of the store" src={logo} width={48} height={48} />
+        <p className="font-[tajawal] font-bold text-blue-500">متجر</p>
+        <Image alt="the logo of the store" src={logo} width={36} height={36} />
       </div>
     </nav>
   );

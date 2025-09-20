@@ -11,7 +11,9 @@ function Footer() {
         <div className="flex flex-col items-end md:items-center order-3 md:order-1">
           <div className="flex items-center gap-2 mb-3">
             <Image src={logo} width={40} height={40} alt="Logo" />
-            <p className="font-[tajawal] font-bold text-base">متجر الكتروني</p>
+            <p className="font-[tajawal] font-bold text-base text-blue-500">
+              متجر
+            </p>
           </div>
           <p className="font-[tajawal] text-gray-600 text-right md:text-center text-sm">
             متجرنا يقدم أفضل المنتجات بأفضل الأسعار
