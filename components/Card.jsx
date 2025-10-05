@@ -1,7 +1,5 @@
 import React from "react";
 import Image from "next/image";
-import placeholder from "@/public/placeholder.jpg";
-import FeatherIcon from "./FeatherIcon";
 import Link from "next/link";
 
 function Card({ product }) {
@@ -9,7 +7,7 @@ function Card({ product }) {
     <div className="flex flex-col shadow-md rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 bg-white min-w-[250px] h-full">
       <div className="relative w-full h-48">
         <Image
-          src={product.thumbnail_url || placeholder}
+          src={product.thumbnail_url}
           alt={product.title || "Product Image"}
           fill
           className="object-cover"

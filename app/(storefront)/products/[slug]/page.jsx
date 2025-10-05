@@ -401,6 +401,10 @@ export default function ProductPage({ params }) {
 
   const [quantity, setQuantity] = React.useState(1); // Quantity state
 
+  useEffect(() => {
+    document.title = `${product ? product.title : "منتج"} - متجر`;
+  }, [product]);
+
   React.useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -810,17 +814,10 @@ export default function ProductPage({ params }) {
         {/* Related Products Section */}
         {relatedProducts.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-row-reverse items-center justify-between mb-6">
               <h2 className="font-[tajawal] text-xl font-bold text-gray-800">
                 منتجات ذات صلة
               </h2>
-              <a
-                href={`/categories/${product.categories?.slug}`}
-                className="flex items-center gap-2 text-blue-500 hover:text-blue-600 font-[tajawal] text-sm transition-colors duration-200"
-              >
-                عرض الكل
-                <FeatherIcon name="arrow-left" size={16} />
-              </a>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

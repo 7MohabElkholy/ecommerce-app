@@ -21,10 +21,10 @@ function Navbar() {
         <Link href="/products" className="font-[tajawal]">
           المنتجات
         </Link>
-        <Link href="/" className="font-[tajawal]">
+        <Link href="/about" className="font-[tajawal]">
           عن المتجر
         </Link>
-        <Link href="/" className="font-[tajawal]">
+        <Link href="/contact-us" className="font-[tajawal]">
           اتصل بنا
         </Link>
       </ul>

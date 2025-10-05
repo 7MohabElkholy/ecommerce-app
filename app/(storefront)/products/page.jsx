@@ -13,6 +13,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
  *
  * @returns {React.ReactElement} The products page component.
  */
+
 function ProductsPage() {
   const supabase = createClientComponentClient();
 
@@ -70,6 +71,10 @@ function ProductsPage() {
       }
     };
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    document.title = `متجر - جميع المنتجات`;
   }, []);
 
   // Fetch categories from Supabase
